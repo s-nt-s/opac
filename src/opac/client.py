@@ -140,7 +140,10 @@ class _SearchFormParser(HTMLParser):
     ) -> None:
         values = {key.casefold(): value or "" for key, value in attrs}
         if tag.casefold() == "form":
-            self._inside_search_form = values.get("id") == "abnformSearch"
+            self._inside_search_form = values.get("id") in {
+                "abnformSearch",
+                "abnform",
+            }
             if self._inside_search_form:
                 self.action = values.get("action") or None
                 self.method = values.get("method", "get").casefold()
@@ -217,7 +220,7 @@ class OpacClient:
         content, _, _ = self._fetch_raw(
             content_url,
             referer=landing_url,
-            #accept="image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+            # accept="image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
         )
         return content
 
@@ -297,6 +300,23 @@ class OpacClient:
             referer_url = final_url
             current_url = urljoin(final_url, refresh.target)
 
+    @staticmethod
+    def _advanced_search_url(landing_url: str) -> str:
+        """Construye la URL del formulario avanzado de AbsysNet."""
+        landing = urlsplit(landing_url)
+        path = landing.path.rstrip("/")
+        if path.rsplit("/", 1)[-1].casefold() != "nt1":
+            path += "/NT1"
+        return urlunsplit(
+            (
+                landing.scheme,
+                landing.netloc,
+                path,
+                urlencode({"ACC": "120", "FORM": "2"}),
+                "",
+            )
+        )
+
     def search(
         self,
         query: SearchQuery,
@@ -313,11 +333,23 @@ class OpacClient:
             raise ValueError("page debe ser un entero positivo.")
 
         landing_html, landing_url = self._fetch(self._base_url)
+        select_fields = ("language", "country", "medium")
+        has_select_filter = any(
+            getattr(query, name) not in (None, "")
+            for name in select_fields
+        )
+        if has_select_filter:
+            advanced_url = self._advanced_search_url(landing_url)
+            landing_html, landing_url = self._fetch(
+                advanced_url,
+                referer=landing_url,
+            )
+
         form = _SearchFormParser()
         form.feed(landing_html)
         if not form.action:
             raise OpacError(
-                "No se encontró el formulario de búsqueda abnformSearch."
+                "No se encontró el formulario de búsqueda AbsysNet."
             )
 
         fields = dict(form.hidden_fields)
@@ -328,6 +360,17 @@ class OpacClient:
                 if value not in (None, "")
             }
         )
+        if has_select_filter:
+            search_criteria = (
+                name
+                for name in query._fields
+                if name not in {*select_fields, "sort_by", "items_per_page"}
+            )
+            if not any(
+                getattr(query, name) not in (None, "")
+                for name in search_criteria
+            ):
+                fields[MAP_PARAM["normal_any_field"]] = "*"
         request_url = urljoin(landing_url, form.action)
         if form.method == "post":
             html, final_url = self._fetch(

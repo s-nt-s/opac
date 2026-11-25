@@ -74,6 +74,8 @@ print("Recursos recuperados:", len(results))
 
 `SearchQuery` admite estos campos opcionales: `normal_any_field`, `expert_any_field`, `title`, `author`, `editorial`, `subject`, `collection`, `genre`, `min_publish_date`, `max_publish_date`, `language`, `country`, `medium`, `sort_by` e `items_per_page`.
 
+Los filtros `language`, `country` y `medium` reciben el valor numérico exacto de la opción del catálogo (por ejemplo, `language="04"` para inglés). Cuando se usan, el cliente consulta el formulario avanzado. Si son los únicos criterios, agrega `*` a `normal_any_field`, como requiere el formulario AbsysNet para búsquedas solo con desplegables.
+
 Cada elemento de `SearchResults.items` es un `SearchResult` con los campos `url`, `title`, `author`, `titn`, `language`, `year`, `resource_type`, `description` y `cover_url`. Los campos textuales no siempre están presentes en los registros del catálogo.
 
 ## Descargar un contenido binario
