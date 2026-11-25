@@ -190,6 +190,47 @@ class OpacClientTests(unittest.TestCase):
 
 
 class RedirectHandlingTests(unittest.TestCase):
+    def test_configured_proxy_receives_http_request(self):
+        proxied_requests = []
+
+        class ProxyHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                proxied_requests.append(self.path)
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b"via proxy")
+
+            def log_message(self, *_args):
+                pass
+
+        proxy_server = HTTPServer(("127.0.0.1", 0), ProxyHandler)
+        proxy_thread = threading.Thread(
+            target=proxy_server.serve_forever,
+            daemon=True,
+        )
+        proxy_thread.start()
+        try:
+            proxy_url = f"http://127.0.0.1:{proxy_server.server_port}"
+            client = OpacClient(
+                "http://catalog.example/",
+                proxy=proxy_url,
+            )
+            content, final_url = client._fetch(
+                "http://catalog.example/catalog"
+            )
+        finally:
+            proxy_server.shutdown()
+            proxy_thread.join()
+            proxy_server.server_close()
+
+        self.assertEqual(content, "via proxy")
+        self.assertEqual(final_url, "http://catalog.example/catalog")
+        self.assertEqual(
+            proxied_requests,
+            ["http://catalog.example/catalog"],
+        )
+
     def test_meta_and_http_redirects_keep_cookies_and_referer(self):
         requests = []
 

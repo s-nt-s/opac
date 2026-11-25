@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.request import (
     HTTPRedirectHandler,
     HTTPCookieProcessor,
+    ProxyHandler,
     Request,
     build_opener,
 )
@@ -186,20 +187,28 @@ class OpacClient:
         *,
         timeout: float = 20.0,
         user_agent: str = "opac-client/0.1 (+https://www.python.org/)",
+        proxy: str | None = None,
     ) -> None:
         parsed = urlsplit(url.strip())
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("La URL debe ser absoluta y usar http o https.")
         if timeout <= 0:
             raise ValueError("timeout debe ser mayor que cero.")
+        self._proxy = proxy
         self._base_url = url
         self._timeout = timeout
         self._user_agent = user_agent
         self._cookies = CookieJar()
-        self._opener = build_opener(
+        handlers = [
             _RedirectHandler(),
             HTTPCookieProcessor(self._cookies),
-        )
+        ]
+        if self._proxy:
+            handlers.insert(
+                0,
+                ProxyHandler({"http": self._proxy, "https": self._proxy}),
+            )
+        self._opener = build_opener(*handlers)
 
     def get_bytes(self, mlkob: str) -> bytes:
         """Descarga el contenido asociado a un identificador ``MLKOB``."""
