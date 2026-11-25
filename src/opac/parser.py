@@ -149,8 +149,9 @@ def _parse_item(item: _Node, base_url: str) -> SearchResult | None:
         raise ValueError(f"titn {titn}")
     if title is None:
         raise ValueError("title")
+    root_url = re.sub(r"(/abnetopac)/.*", r"\1", base_url)
     return SearchResult(
-        url=f"{base_url}?TITN={titn}",
+        url=f"{root_url}?TITN={titn}",
         title=title,
         author=author,
         titn=int(titn),

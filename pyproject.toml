@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opac-client"
-version = "1.0.0"
+version = "1.0.1"
 description = "Cliente Python sin dependencias externas para buscar en catálogos AbsysNet Opac compatibles."
 readme = "README.md"
 requires-python = ">=3.10"
