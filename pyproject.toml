@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opac-client"
+version = "1.0.0"
+description = "Cliente Python sin dependencias externas para buscar en catálogos AbsysNet Opac compatibles."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "AbsysNet Opac Client contributors" }]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/s-nt-s/opac"
+Repository = "https://github.com/s-nt-s/opac"
+Issues = "https://github.com/s-nt-s/opac/issues"
+
+[project.scripts]
+opac = "opac.cli:main"
+opac-server = "opac.server:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
