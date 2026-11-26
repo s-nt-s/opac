@@ -6,6 +6,7 @@ from typing import NamedTuple, Optional
 class SearchResult(NamedTuple):
     """Un libro, película u otro recurso del catálogo."""
     url: str
+    # span.c-docs_title.m-docs_title
     # span.js-T245
     title: str
     # span.span.js-TITN
