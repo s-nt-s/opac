@@ -36,11 +36,12 @@ RESULTS_HTML = """
     <span class="js-FEPU">2026</span>
   </li>
 </ol>
-<div class="c-paginator_cont">
+<p class="c-paginator_cont">
   <span class="acti">1</span><a>2</a>
-</div>
+</p>
 <ul class="c-paginator_list--nextPre">
-  <a aria-label="Página Siguiente" href="/session?ACC=161&amp;DOC=11">
+    <a class="js-evn-AbnOpacListDoc"
+         aria-label="Página Siguiente" href="/session?ACC=161&amp;DOC=11">
     Siguiente
   </a>
 </ul>

@@ -1,13 +1,12 @@
 import unittest
 
-from opac.parser import _TreeParser, parse_search_results
+from opac.parser import parse_search_results
+from opac.treeparser import TreeParser
 
 
 class ParseSearchResultsTests(unittest.TestCase):
     def test_tree_parser_builds_immutable_child_tuples(self):
-        parser = _TreeParser()
-        parser.feed("<div><span>uno</span><span>dos</span></div>")
-        root = parser.finish()
+        root = TreeParser.parse("<div><span>uno</span><span>dos</span></div>")
 
         div = root.children[0]
         self.assertIsInstance(root.children, tuple)
@@ -46,15 +45,15 @@ class ParseSearchResultsTests(unittest.TestCase):
           </li>
         </ol>
         <p class="c-paginator_count">1 / 2 de 10 resultados</p>
-        <div class="c-paginator_list c-paginator_list--nextPre">
-          <li class="c-paginator_cont">
+        <p class="c-paginator_cont">
             <span class="acti">1</span><span class="barr">|</span>
             <a class="noacti">2</a>
-          </li>
+        </p>
+        <ul class="c-paginator_list c-paginator_list--nextPre">
           <a class="js-evn-AbnOpacListDoc"
              aria-label="Página Siguiente"
              href="/catalog/NT1?ACC=161&amp;DOC=3">Siguiente</a>
-        </div>
+        </ul>
         """
 
         results = parse_search_results(
@@ -63,7 +62,7 @@ class ParseSearchResultsTests(unittest.TestCase):
 
         self.assertEqual(len(results.items), 2)
         item = results.items[0]
-        self.assertEqual(item.title, "Título de prueba /")
+        self.assertEqual(item.title, "Título de prueba")
         self.assertEqual(item.author, "Autora, Ana")
         self.assertEqual(item.titn, 123456)
         self.assertIsInstance(item.titn, int)
