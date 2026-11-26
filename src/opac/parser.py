@@ -31,7 +31,7 @@ def _parse_item(item: Node, base_url: str) -> SearchResult | None:
     if author:
         author = re.sub(r"\s+\(\d{4}-(\d{4})?\)\s*$", "", author)
     root_url = re.sub(r"(/abnetopac)/.*", r"\1", base_url)
-    title = re.sub(r"\s*/\s*$", "", title)
+    title = re.sub(r"\s*/\s*(\[.+\])?\s*$", "", title)
     title = re.sub(r"\s+:\s+", ": ", title)
     return SearchResult(
         url=f"{root_url}?TITN={titn}",
