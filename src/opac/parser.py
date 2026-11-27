@@ -8,6 +8,12 @@ from .treeparser import TreeParser, Node
 from .models import SearchResult, SearchResults
 
 
+def _clean_title(title: str):
+    title = re.sub(r"\s*/\s*(\[.+\])?\s*$", "", title)
+    title = re.sub(r"\s+:\s+", ": ", title)
+    return title
+
+
 def _parse_item(item: Node, base_url: str) -> SearchResult | None:
     """Extrae un registro ``li.c-docs_unit`` del listado AbsysNet."""
 
@@ -21,7 +27,10 @@ def _parse_item(item: Node, base_url: str) -> SearchResult | None:
     material = item.first("p", "c-docs_mat")
     icon = material.first("i") if material else None
 
-    title = item.first_text("span", "c-docs_title", "m-docs_title") or item.first_text("span", "js-T245")
+    title = (
+        item.first_text("span", "c-docs_title", "m-docs_title")
+        or item.first_text("span", "js-T245")
+    )
     titn = item.first_text("span", "js-TITN")
     author = item.first_text("span", "js-T1XX")
     if titn is None or not titn.isdigit():
@@ -31,8 +40,7 @@ def _parse_item(item: Node, base_url: str) -> SearchResult | None:
     if author:
         author = re.sub(r"\s+\(\d{4}-(\d{4})?\)\s*$", "", author)
     root_url = re.sub(r"(/abnetopac)/.*", r"\1", base_url)
-    title = re.sub(r"\s*/\s*(\[.+\])?\s*$", "", title)
-    title = re.sub(r"\s+:\s+", ": ", title)
+    title = _clean_title(title)
     return SearchResult(
         url=f"{root_url}?TITN={titn}",
         title=title,
@@ -48,10 +56,66 @@ def _parse_item(item: Node, base_url: str) -> SearchResult | None:
     )
 
 
+def parse_unique_result(root: Node, base_url: str) -> SearchResult:
+    """Extrae un registro de la ficha individual de AbsysNet."""
+
+    titn = root.first_text("span", "js-TITN")
+    if titn is None or not titn.isdigit():
+        raise ValueError(f"titn {titn}")
+
+    title = (
+        root.first_text("span", "doc_title", "js-doc_title")
+        or root.first_text("span", "js-T245ab")
+        or root.first_text("span", "js-T245")
+    )
+    if title is None:
+        raise ValueError("title")
+    title = _clean_title(title)
+
+    author = root.first_text("span", "js-T1XX")
+    if author:
+        author = re.sub(r"\s+\(\d{4}-(\d{4})?\)\s*$", "", author)
+
+    year_match = re.search(r"\d{4}", root.first_text("span", "js-FEPU") or "")
+    year = int(year_match.group()) if year_match else None
+    cover_container = root.first("span", "c-docs_imgPreLoad")
+    cover = cover_container.first("img") if cover_container else None
+    material = root.first("p", "doc_type") or root.first("p", "c-docs_mat")
+    icon = material.first("i") if material else None
+    root_url = re.sub(r"(/abnetopac)/.*", r"\1", base_url)
+
+    return SearchResult(
+        url=f"{root_url}?TITN={titn}",
+        title=title,
+        author=author,
+        titn=int(titn),
+        language=root.first_text("span", "js-LENG"),
+        year=year,
+        resource_type=icon.get("title") if icon else None,
+        description=root.first_text("span", "js-T520"),
+        cover_url=cover.get_absolute(base_url, "src") if cover else None,
+    )
+
+
 def parse_search_results(html: str, base_url: str) -> SearchResults:
     """Convierte HTML del catálogo en modelos Python."""
     root = TreeParser.parse(html)
     result_nodes = tuple(root.descendants("li", "c-docs_unit"))
+    if len(result_nodes) == 0:
+        if root.first("div", "doc_body") or root.first("p", "c-docs_marc"):
+            item = parse_unique_result(root, base_url)
+            return SearchResults(
+                items=(item,),
+                current_page=1,
+                page_numbers=(1,),
+                next_page_url=None,
+            )
+        return SearchResults(
+            items=(),
+            current_page=1,
+            page_numbers=(),
+            next_page_url=None,
+        )
     items = tuple(
         item
         for result_node in result_nodes

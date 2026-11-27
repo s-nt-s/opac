@@ -106,6 +106,57 @@ class ParseSearchResultsTests(unittest.TestCase):
         self.assertIsNone(partial.items[0].author)
         self.assertIsNone(partial.items[0].year)
 
+    def test_extracts_a_single_document_detail_page(self):
+        html = """
+        <div class="doc_left">
+          <div class="doc_img">
+            <p class="doc_type"><i title="Monografías"></i></p>
+            <span class="c-docs_imgPreLoad">
+              <img src="/covers/book.jpg" alt="Cubierta">
+            </span>
+          </div>
+          <div class="doc_body">
+            <h3><span class="doc_title js-doc_title">El futuro por decidir :
+              cómo sobrevivir a la crisis climática /</span></h3>
+            <p class="c-docs_marc">
+              <span class="js-TITN">1920708</span>
+              <span class="js-LENG">spa</span>
+              <span class="js-FEPU">2021</span>
+              <span class="js-T1XX">Figueres, Christiana</span>
+            </p>
+          </div>
+        </div>
+        """
+
+        results = parse_search_results(
+            html,
+            "https://catalog.example/biblio_publicas/cgi-bin/abnetopac/record",
+        )
+
+        self.assertEqual(len(results.items), 1)
+        item = results.items[0]
+        self.assertEqual(
+            item.title,
+            "El futuro por decidir: cómo sobrevivir a la crisis climática",
+        )
+        self.assertEqual(item.author, "Figueres, Christiana")
+        self.assertEqual(item.titn, 1920708)
+        self.assertEqual(item.language, "spa")
+        self.assertEqual(item.year, 2021)
+        self.assertEqual(item.resource_type, "Monografías")
+        self.assertEqual(
+            item.url,
+            "https://catalog.example/biblio_publicas/cgi-bin/abnetopac"
+            "?TITN=1920708",
+        )
+        self.assertEqual(
+            item.cover_url,
+            "https://catalog.example/covers/book.jpg",
+        )
+        self.assertEqual(results.current_page, 1)
+        self.assertEqual(results.page_numbers, (1,))
+        self.assertIsNone(results.next_page_url)
+
     def test_records_without_title_or_titn_are_rejected(self):
         for fields in (
             '<span class="js-TITN">42</span>',
